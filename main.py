@@ -1,6 +1,6 @@
 # Application Cryptocurrency exchange rates
-# Ver 1.0.0
-# Application for getting TOP-10 popular cryptocurrency exchange rates
+# Ver 1.0.1
+# Application for getting TOP-10 popular cryptocurrency exchange rates (with timeout)
 
 
 from tkinter import *
@@ -8,6 +8,9 @@ from tkinter import ttk
 from tkinter import messagebox as mb
 import requests
 from pathlib import Path
+
+from requests import Timeout
+
 
 def update_b_label(event):
     # Получаем полное название криптовалюты из словаря и обновляем метку
@@ -23,12 +26,11 @@ def exchange():
         try:
             response = requests.get(f'https://api.coingecko.com/api/v3/simple/price?ids='
                                      f'bitcoin,ethereum,tether,binancecoin,ripple,usd-coin,'
-                                     f'solana,cardano,dogecoin,tron&vs_currencies=usd')
+                                     f'solana,cardano,dogecoin,tron&vs_currencies=usd', timeout=10)
             response.raise_for_status()
 
             data = response.json()
             result = {key: value['usd'] for key, value in data.items()}
-
             new_keys = list(currencies.keys())[:len(result)]
             new_result = dict(zip(new_keys, result.values()))
 
@@ -38,9 +40,15 @@ def exchange():
                 res = (f" {response:.2f} USD\nза 1 {base}")
                 int_part['text'] = res
             else:
-                mb.showerror("Ошибка", f"Валюта {base_code} не найдена")
+                mb.showerror("Ошибка", f'Валюта "{base_code}" не найдена')
+        except Timeout:
+            mb.showerror("Ошибка",f"Сервер не отвечает.\n"
+                                  f"Повторите попытку позже.")
+        except requests.exceptions.RequestException as e:
+            mb.showerror("Ошибка сети", f"О ш и б к а   с е т и: {str(e)}\n"
+                                        f"\n П р о в е р ь т е   и н т е р н е т   с о е д и н е н и е")
         except Exception as e:
-            mb.showerror("Ошибка", f"Ошибка: {e}")
+            mb.showerror("Ошибка", f"О ш и б к а: {e}")
     else:
         mb.showwarning("Внимание", "Выберите код валюты")
 
